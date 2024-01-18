@@ -1,0 +1,79 @@
+
+esphome:
+    #name_add_mac_suffix: true
+    comment: "Sonoff S20 Wi-Fi Smart Plug"
+    project:
+      name: "Sonoff.S20"
+      version: "2.0.1"
+
+esp8266:
+    board: sonoff_s20
+
+output:
+  - platform: esp8266_pwm
+    id: s20_green_led
+    pin:
+      number: GPIO13
+      inverted: true
+
+light:
+  - platform: monochromatic
+    name: "Status LED"
+    output: s20_green_led
+    entity_category: config 
+
+  - platform: status_led
+    id: default_status_led
+    output: s20_green_led
+
+
+    
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    id: onoff_button
+    filters:
+      - invert:
+      - delayed_off: 10ms
+    on_press:
+      - switch.toggle: relay
+    # on_double_click :
+    #   button.press: restart_device
+    # on_click:
+    #   min_length: 10s
+    #   max_length: 20s
+    #   then:
+    #     - button.press: reset
+
+
+  # - platform: gpio
+  #   pin: GPIO1   # RX pin (for external sensors)
+  #   id: sensor_rx
+  #   name: "GPIO01/RX"
+  #   disabled_by_default: true
+
+  # - platform: gpio
+  #   pin: GPIO2   # E-LOG pin (From PCB V2.1; for external sensors)
+  #   id: sensor_elog
+  #   name: "GPIO2/E-LOG"
+  #   disabled_by_default: true
+
+  # - platform: gpio
+  #   pin: GPIO3   # TX pin (for external sensors)
+  #   id: sensor_tx
+  #   name: "GPIO03/TX"
+  #   disabled_by_default: true
+
+
+switch:
+  - platform: gpio
+    name: None
+    device_class: outlet
+    pin: GPIO12
+    id: relay
+    restore_mode: RESTORE_DEFAULT_OFF 

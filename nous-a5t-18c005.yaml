@@ -1,0 +1,14 @@
+substitutions:
+  devicename: "nous-a5t-18c005" # change this to the device name and comment out name_add_mac_suffix 
+  friendly_name: "Nous A5T" # friendly name can be changed it Home Assistant later on
+  power_metering_update_interval: "3s"
+  current_calibration: "1.035714285714286"
+  voltage_calibration: "2.425531914893617"
+  power_calibration: "2.476547842401501"
+
+# logger:
+#   baud_rate: 0
+
+packages:
+  device_base: !include common/device_min.yaml
+  device_nous_a1t: !include common/device_nous_a5t.yaml

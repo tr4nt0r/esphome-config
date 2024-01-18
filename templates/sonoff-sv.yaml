@@ -1,0 +1,9 @@
+substitutions:
+  devicename: "sonoff-sv" # change this to the device name and comment out name_add_mac_suffix 
+  friendly_name: "Sonoff SV"
+  external_switch_gpio: "GPIO04"
+
+packages:
+  device_base: !include common/device_min.yaml
+  device_sonoff_s20: !include common/device_sonoff_sv.yaml
+  switch_config: !include common/switch_config.toggle.yaml

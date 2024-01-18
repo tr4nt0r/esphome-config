@@ -1,0 +1,9 @@
+substitutions:
+  devicename: "vindriktning-f56b82"
+  friendly_name: "Vindriktning"
+  temperature_offset: "6.5"
+  co2_forced_calibration_value: "418"  # outside average Dec 2022 (source: https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_mm_gl.txt)
+
+packages:
+  device_base: !include common/device_base.yaml
+  device_sonoff_mini: !include common/device_vindriktning.yaml

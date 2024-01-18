@@ -1,0 +1,83 @@
+  
+binary_sensor:
+  - platform: gpio
+    name: "Switch"
+    pin: GPIO04
+    id: light_switch
+    icon: "mdi:light-switch"
+    entity_category: config  #don't need this on the dashboard
+    #internal: true
+
+    filters:
+      - delayed_on_off: 10ms
+      #- invert:   # uncomment if on and off states are inverted
+
+    ################################
+    #  events fired for toggle/rocker switches or push button switches
+    ################################
+
+    # short click event for push button switches, toggles releay if not connected to Home Assistant
+    on_click:
+      then:
+        - homeassistant.event:
+            event: esphome.controller_event
+            data:
+              command: "short"
+        - logger.log: "Short event was fired"
+        - if:
+            condition:
+              - not:
+                - api.connected
+            then:
+              - switch.toggle: relay
+
+    # double press event for push button switches
+    on_double_click:
+      then:
+        - homeassistant.event:
+            event: esphome.controller_event
+            data:
+              command: "double_press"
+        - logger.log: "double_press event was fired"
+
+    # hold and release event for push button switches
+    on_multi_click:
+      - timing: 
+          - ON for at least 1s
+        then:
+        - homeassistant.event:
+            event: esphome.controller_event
+            data:
+              command: "hold"
+        - logger.log: "Hold event was fired"
+      - timing:
+          - ON for at least 1s
+          - OFF for at most 0.2s
+        then:
+          - homeassistant.event:
+              event: esphome.controller_event
+              data:
+                command: "release"
+          - logger.log: "Release event was fired"
+
+
+      # failsafe relay turn off when HA automation is not responding
+      # push button tripple click turns off relay
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at least 0.2s
+        then:
+          - switch.turn_off: relay
+
+
+text_sensor:
+  - platform: template
+    name: "Switch Configuration"
+    lambda: |-
+      return {"pushbutton"};
+    entity_category: diagnostic
+    icon: "mdi:cog"

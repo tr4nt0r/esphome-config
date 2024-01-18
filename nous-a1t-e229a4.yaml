@@ -1,0 +1,15 @@
+substitutions:
+  devicename: "nous-a1t-e229a4" # change this to the device name and comment out name_add_mac_suffix 
+  friendly_name: "Nous A1T"
+  current_resistor: "0.0009654" # Higher value gives lower watt readout
+  voltage_divider: "1519.039344262295" # Lower value gives lower voltage readout
+  power_metering_update_interval: "3s"
+  current_calibration: "0.8482164"
+  voltage_calibration: "1"
+  power_calibration: "1"
+
+# logger:
+
+packages:
+  device_base: !include common/device_min.yaml
+  device_nous_a1t: !include common/device_nous_a1t.yaml

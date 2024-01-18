@@ -1,0 +1,17 @@
+substitutions:
+  devicename: "sonoff-mini-a02ce3" # change this to the device name and comment out name_add_mac_suffix 
+  friendly_name: "Sonoff Mini"
+  external_switch_gpio: "GPIO04"
+  external_switch_mode: "INPUT_PULLUP"
+  decoupled_switch: "true"
+
+packages:
+  device_base: !include common/device_min.yaml
+  device_sonoff_mini: !include common/device_sonoff_mini.yaml
+  switch_config: !include common/switch_config.toggle.yaml
+  #switch_config: !include common/switch_config.pushbutton.yaml
+
+
+dashboard_import:
+  package_import_url: github://tr4nt0r/homeassistant/sonoff-mini.yaml@main
+  import_full_config: true

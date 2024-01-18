@@ -1,0 +1,158 @@
+esphome:
+    # name_add_mac_suffix: true
+    comment: "Nous A1T WiFi Smart Socket"
+    project:
+        name: "Nous.A1T"
+        version: "2023.11.0"
+
+esp8266:
+  board: esp8285
+  restore_from_flash: true
+
+
+output:
+  - platform: esp8266_pwm
+    id: green_led
+    pin:
+      number: GPIO13
+      inverted: true
+
+light:
+  - platform: monochromatic
+    name: "Status LED"
+    id: led
+    output: green_led
+    entity_category: config 
+    restore_mode: RESTORE_DEFAULT_OFF
+
+  - platform: status_led
+    id: default_status_led
+    output: green_led
+
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    id: onoff_button
+    filters:
+      - invert:
+      - delayed_off: 10ms
+    on_press:
+      - switch.toggle: relay
+    on_double_click :
+      button.press: restart_device
+    on_click:
+      min_length: 10s
+      max_length: 20s
+      then:
+        - button.press: reset
+
+
+switch:
+  - platform: gpio
+    name: "Switch"
+    device_class: outlet
+    pin: GPIO14
+    id: relay
+    restore_mode: RESTORE_DEFAULT_OFF 
+    on_turn_on:
+      - light.turn_on: led
+    on_turn_off:
+      - light.turn_off: led
+
+sensor:
+  - platform: hlw8012
+    model: BL0937
+    sel_pin:
+      number: GPIO12
+      inverted: true
+    cf_pin: GPIO04
+    cf1_pin: GPIO05
+    change_mode_every: 8
+    current_resistor: ${current_resistor} # Higher value gives lower watt readout
+    voltage_divider: ${voltage_divider}
+    update_interval: ${power_metering_update_interval}
+
+    current:
+      name: "Current"
+      id: current
+      accuracy_decimals: 3
+      filters:
+        - multiply: ${current_calibration}
+    voltage:
+      name: "RMS Voltage"
+      id: voltage
+      accuracy_decimals: 0
+      filters:
+        - multiply: ${voltage_calibration}
+    power:
+      name: "Active Power"
+      id: active_power
+      accuracy_decimals: 1
+      force_update: true
+      filters:
+        - multiply: ${power_calibration}
+    energy:
+      name: "Energy"
+      filters:
+      # Multiplication factor from W to kW is 0.001
+      - multiply: 0.001
+      unit_of_measurement: kWh
+      accuracy_decimals: 4
+      disabled_by_default: true
+
+  - platform: template
+    name: "Apparent power"
+    id: apparent_power
+    lambda: return id(voltage).state * id(current).state;
+    accuracy_decimals: 2
+    unit_of_measurement: VA
+    device_class: apparent_power
+    update_interval: ${power_metering_update_interval}
+  
+  - platform: template
+    name: "Reactive power"
+    id: reactive_power
+    lambda: return sqrt( pow(id(apparent_power).state,2) - pow(id(active_power).state,2)  );
+    accuracy_decimals: 2
+    unit_of_measurement: var
+    device_class: reactive_power
+    update_interval: ${power_metering_update_interval}
+
+  - platform: template
+    name: Power factor
+    lambda: return id(active_power).state / id(apparent_power).state * 100;
+    filters:
+    - clamp:
+        min_value: 0
+        max_value: 100
+    accuracy_decimals: 0
+    unit_of_measurement: "%"
+    device_class: power_factor
+    state_class: measurement
+    update_interval: ${power_metering_update_interval}
+
+text_sensor:
+  - platform: template
+    name: "Voltage Divider"
+    lambda: |-
+      return {"${voltage_divider}"};
+    entity_category: diagnostic
+    icon: "mdi:cog"
+  - platform: template
+    name: "Current Resistor"
+    lambda: |-
+      return {"${current_resistor}"};
+    entity_category: diagnostic
+    icon: "mdi:cog"
+  - platform: template
+    name: "Current Calibration"
+    lambda: |-
+      return {"${current_calibration}"};
+    entity_category: diagnostic
+    icon: "mdi:cog"

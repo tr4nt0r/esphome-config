@@ -1,0 +1,8 @@
+substitutions:
+  devicename: "sonoff-s20-d5ae2c" # change this to the device name and comment out name_add_mac_suffix 
+  friendly_name: "Sonoff S20"
+
+
+packages:
+  device_base: !include common/device_min.yaml
+  device_sonoff_s20: !include common/device_sonoff_s20.yaml

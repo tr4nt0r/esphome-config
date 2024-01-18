@@ -1,0 +1,219 @@
+esphome:
+  #name_add_mac_suffix: true
+  comment: "IKEA Vindriktning PM2.5 Sensor und CO2 Sensor"
+  project:
+    name: "IKEA.Vindriktning"
+    version: "1.8.1"
+
+  #some settings for the ESP32-S2 Mini (ESP32-S2FN4R2), may not be required for other devices
+  # platformio_options:
+  #   board_build.extra_flags:
+  #     - "-DARDUINO_USB_CDC_ON_BOOT=0" #this is required to use native UART https://github.com/esphome/issues/issues/3988
+
+  on_boot: 
+    then:
+      - sensor.template.publish:
+          id: temperature_offset
+          state: ${temperature_offset}
+
+      
+esp32:
+  board: lolin_s2_mini
+  variant: esp32s2
+  flash_size: 4MB
+  framework:
+    type: arduino
+
+i2c:
+  sda: 12
+  scl: 13
+  id: bus_a
+
+uart:
+  rx_pin: 34
+  baud_rate: 9600
+
+web_server:
+  port: 80
+  version: 2
+  ota: true
+  include_internal: false
+
+interval:
+  - interval: 1min
+    then:
+      - sensor.template.publish:
+          id: power_consumption
+          state: 0.56
+          
+
+api:
+  services:
+    - service: set_ambient_pressure_compensation
+      variables:
+        pressure_in_hpa: int
+      then:
+        - lambda: "id(my_scd41)->set_ambient_pressure_compensation(pressure_in_hpa); id(external_pressure).publish_state(pressure_in_hpa); id(scd4x_altitude_compensation_value).publish_state(NAN);"
+    - service: set_altitude_compensation
+      variables:
+        altitude: int
+      then:
+        - lambda: "id(my_scd41)->set_altitude_compensation(altitude); id(scd4x_altitude_compensation_value).publish_state(altitude);"
+    - service: set_co2_calibration
+      variables:
+        co2_in_ppm: int
+      then:
+        - lambda: "id(my_scd41)->perform_forced_calibration(co2_in_ppm);"
+  
+          
+
+sensor:  
+
+# estimated power consumption
+#######################
+  - platform: template
+    name: "Active Power"
+    id: power_consumption
+    device_class: power
+    state_class: measurement
+    unit_of_measurement: W
+    accuracy_decimals: 4
+    filters:
+      - heartbeat: 60s
+    entity_category: diagnostic
+  - platform: integration
+    name: "Energy"
+    sensor: power_consumption
+    time_unit: 'h'
+    device_class: energy
+    state_class: total_increasing
+    unit_of_measurement: 'Wh'
+    restore: false
+    integration_method: left
+#######################
+
+  - platform: internal_temperature
+    name: "Device Temperature"
+
+
+
+# SCD41 CO2 Sensor
+#######################
+  - platform: scd4x
+    id: my_scd41
+    update_interval: 5s
+    automatic_self_calibration: true
+    temperature_offset: ${temperature_offset}
+
+    co2:
+      id: vindriktning_carbon_dioxide
+      name: "CO₂"
+      filters:
+      - delta: 3
+    temperature:
+      id: vindriktning_temperature
+      name: "Temperature"
+      filters:
+      - delta: 0.2
+      accuracy_decimals: 1
+    humidity:
+      id: vindriktning_humidity
+      name: "Humidity"
+      filters:
+      - delta: 1.0
+      accuracy_decimals: 0
+
+  - platform: template
+    name: "Pressure Compensation"
+    unit_of_measurement: hPa
+    update_interval: never
+    device_class: "pressure"
+    state_class: "measurement"
+    id: external_pressure
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Altitude Compensation"
+    id: scd4x_altitude_compensation_value
+    unit_of_measurement: m
+    update_interval: never
+    device_class: "distance"
+    state_class: "measurement"
+    icon: mdi:waves-arrow-up
+    entity_category: diagnostic 
+
+  - platform: template
+    name: "Temperature Offset"
+    id: temperature_offset
+    unit_of_measurement: "°C"
+    update_interval: never
+    device_class: "temperature"
+    state_class: "measurement"
+    icon: mdi:arrow-expand-vertical
+    entity_category: diagnostic
+
+#######################
+
+
+# IKEA Vindriktning PM1006 PM2.5 Sensor
+#######################
+  - platform: pm1006
+    pm_2_5:
+      name: "PM2.5"
+      icon: mdi:molecule
+      filters:
+        - sliding_window_moving_average:
+            window_size: 10
+            send_every: 10
+        - delta: 1.0
+#######################
+
+
+button:
+  # IDC41 CO2 Sensor
+#######################
+  - platform: template
+    name: "CO₂ Sensor Calibration"
+    id: scd4x_calibrate
+    entity_category: config
+    disabled_by_default: true
+    on_press:
+      - scd4x.perform_forced_calibration:
+          value: ${co2_forced_calibration_value}  
+          id: my_scd41
+
+
+  - platform: template
+    name: "CO₂ Sensor Factory Reset"
+    id: sdc4x_factory_reset
+    entity_category: config
+    disabled_by_default: true
+    on_press:
+      - scd4x.factory_reset: my_scd41
+
+# number:
+#   - platform: template
+#     name: "CO² Altitude Compensation"
+#     id: scd4x_altitude_compensation_value
+#     optimistic: true
+#     min_value: -428 # Dead Sea
+#     max_value: 8848 # Mount Everest
+#     initial_value: 0 # Default Value of SCD4x Sensor
+#     step: 1
+#     unit_of_measurement: m
+#     entity_category: config
+#     restore_value: true
+#     set_action:
+#       - lambda: |-
+#           id(my_scd41)->set_altitude_compensation(x);             
+#######################
+
+
+light:
+  - platform: status_led
+    id: default_status_led
+    name: "Status LED"
+    pin:
+        number: 15
+        inverted: true
+    entity_category: config 

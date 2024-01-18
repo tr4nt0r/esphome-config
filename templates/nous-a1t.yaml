@@ -1,0 +1,18 @@
+substitutions:
+  devicename: "nous-a1t" # change this to the device name and comment out name_add_mac_suffix 
+  friendly_name: "Nous A1T" # friendly name can be changed it Home Assistant later on
+  current_resistor: "0.001" # calibrate current_resistor, voltage_divider and current_calibration 
+  voltage_divider: "2041"   # with the help of this calculator https://esphome.io/components/sensor/hlw8012.html
+  power_metering_update_interval: "3s"
+  current_calibration: "1"
+  voltage_calibration: "1"
+  power_calibration: "1"
+
+# logger:
+
+packages:
+  device_base: !include common/device_min.yaml
+  device_nous_a1t: !include common/device_nous_a1t.yaml
+
+esphome:
+  name_add_mac_suffix: true

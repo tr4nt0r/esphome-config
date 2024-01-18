@@ -1,0 +1,235 @@
+esphome:
+  comment: "Nous A5T WiFi Smart Power Strip"
+  project:
+    name: "Nous.A5T"
+    version: "2024.01.0"
+
+esp8266:
+  board: esp8285
+  restore_from_flash: true
+  early_pin_init: true
+
+uart:
+  rx_pin: GPIO03
+  tx_pin: GPIO01
+  baud_rate: 4800
+
+light:
+  - platform: status_led
+    name: "Status LED"
+    id: default_status_led
+    pin:
+      number: GPIO02
+      inverted: true
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO16
+      mode:
+        input: true
+      inverted: true
+    id: onoff_button
+    filters:
+      - invert:
+      - delayed_off: 10ms
+    on_press:
+      - switch.toggle: relay_usb
+    on_double_click:
+      button.press: restart_device
+    on_click:
+      min_length: 10s
+      max_length: 20s
+      then:
+        - button.press: reset
+
+switch:
+  - platform: gpio
+    name: "Switch USB"
+    device_class: outlet
+    icon: "mdi:usb"
+    pin:
+      number: GPIO05
+      inverted: true
+    id: relay_usb
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - light.turn_on: default_status_led
+    on_turn_off:
+      - light.turn_off: default_status_led
+
+  - platform: gpio
+    name: "Switch 1"
+    device_class: outlet
+    pin: GPIO14
+    id: relay1
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+    - component.update: power_consumption
+    on_turn_off:
+    - component.update: power_consumption
+
+  - platform: gpio
+    name: "Switch 2"
+    device_class: outlet
+    pin: GPIO12
+    id: relay2
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+    - component.update: power_consumption
+    on_turn_off:
+    - component.update: power_consumption
+
+  - platform: gpio
+    name: "Switch 3"
+    device_class: outlet
+    pin: GPIO13
+    id: relay3
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+    - component.update: power_consumption
+    on_turn_off:
+    - component.update: power_consumption
+
+sensor:
+  - platform: cse7766
+    update_interval: ${power_metering_update_interval}
+    current:
+      name: "Current"
+      id: current
+      accuracy_decimals: 3
+      filters:
+        - multiply: ${current_calibration}
+    voltage:
+      name: "RMS Voltage"
+      id: voltage
+      accuracy_decimals: 0
+      filters:
+        - multiply: ${voltage_calibration}
+    power:
+      name: "Active Power"
+      id: active_power
+      accuracy_decimals: 1
+      # force_update: true
+      filters:
+        - multiply: ${power_calibration}
+    energy:
+      name: "Energy"
+      filters:
+        # Multiplication factor from W to kW is 0.001
+        - multiply: 0.001
+      unit_of_measurement: kWh
+      accuracy_decimals: 4
+      disabled_by_default: true
+
+  - platform: template
+    name: "Apparent power"
+    id: apparent_power
+    lambda: return id(voltage).state * id(current).state;
+    accuracy_decimals: 2
+    unit_of_measurement: VA
+    device_class: apparent_power
+    update_interval: ${power_metering_update_interval}
+
+  - platform: template
+    name: "Reactive power"
+    id: reactive_power
+    lambda: return sqrt( pow(id(apparent_power).state,2) - pow(id(active_power).state,2)  );
+    accuracy_decimals: 2
+    unit_of_measurement: var
+    device_class: reactive_power
+    update_interval: ${power_metering_update_interval}
+
+  - platform: template
+    name: Power factor
+    lambda: return id(active_power).state / id(apparent_power).state * 100;
+    filters:
+      - clamp:
+          min_value: 0
+          max_value: 100
+          ignore_out_of_range: true
+    accuracy_decimals: 0
+    unit_of_measurement: "%"
+    device_class: power_factor
+    state_class: measurement
+    update_interval: ${power_metering_update_interval}
+
+  - platform: adc
+    pin: VCC
+    id: input_button
+    internal: true
+    update_interval: 50ms
+    filters:
+    - delta: 0.1
+    on_value_range:
+      - below: 4.0
+        above: 3.0
+        then:
+          - number.set:
+              id: helper_button
+              value: 1
+      - below: 3.0
+        above: 2.0
+        then:
+          - number.set:
+              id: helper_button
+              value: 2
+      - below: 2.0
+        above: 1.0
+        then:
+          - number.set:
+              id: helper_button
+              value: 3
+
+
+
+# estimate power consumption
+#######################
+  - platform: template
+    name: "Device Power"
+    id: power_consumption
+    device_class: power
+    state_class: measurement
+    unit_of_measurement: W
+    accuracy_decimals: 2
+    update_interval: 1min
+    entity_category: ""
+    lambda: !lambda |-
+      return 0.8 + ((id(relay1).state) ? 0.4 : 0 ) + ((id(relay2).state) ? 0.4 : 0 )+ ((id(relay3).state) ? 0.4 : 0);
+
+    
+  - platform: integration
+    name: "Device Energy"
+    sensor: power_consumption
+    time_unit: 'h'
+    device_class: energy
+    state_class: total_increasing
+    unit_of_measurement: 'Wh'
+    restore: false
+    integration_method: left
+    accuracy_decimals: 1
+#######################
+
+
+number:
+  - platform: template
+    id: helper_button
+    internal: true
+    optimistic: true
+    initial_value: 0
+    min_value: 0
+    max_value: 3
+    step: 1
+    on_value:
+      then:
+        - lambda: |-
+            if ( x == 1) {
+              id(relay1).toggle();
+            } else if (x == 2) {
+              id(relay2).toggle();
+            } else if (x == 3) {
+              id(relay3).toggle();
+            }
+

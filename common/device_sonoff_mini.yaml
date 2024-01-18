@@ -1,0 +1,92 @@
+
+esphome:
+  comment: "Sonoff MINI Wi-Fi DIY Smart Switch"
+  project:
+    name: "Sonoff.MINI"
+    version: "2023.12.1"
+    
+esp8266:
+  board: esp8285
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    id: reset_button
+    internal: true
+    filters:
+      - invert:
+      - delayed_off: 10ms
+    on_press: 
+      switch.toggle: relay
+    # on_double_click :
+    #   button.press: restart_device
+    # on_click:
+    #   min_length: 10s
+    #   max_length: 20s
+    #   then:
+    #     - button.press: reset
+
+
+  # disabled by default as these GPIOs are not connected by default but exposed solderpads on the circuit board
+  # - platform: gpio
+  #   pin: GPIO1   # TX pin (for external sensors)
+  #   id: sensor_tx
+  #   name: "GPIO01/TX"
+  #   disabled_by_default: true
+
+  # - platform: gpio
+  #   pin: GPIO2   # GPIO02 pin (for external sensors)
+  #   id: sensor_elog
+  #   name: "GPIO2"
+  #   disabled_by_default: true
+
+  # - platform: gpio
+  #   pin: GPIO3   # RX pin (for external sensors)
+  #   id: sensor_rx
+  #   name: "GPIO03/RX"
+  #   disabled_by_default: true
+
+  # - platform: gpio
+  #   pin: GPIO16   # 
+  #   id: sensor_ota
+  #   name: "GPI16/OTA"
+  #   disabled_by_default: true
+
+switch:
+  - platform: gpio
+    name: "Switch"
+    pin: GPIO12
+    id: relay
+    device_class: switch
+    restore_mode: restore_default_on
+
+  - platform: template
+    name: "Decoupled Mode"
+    id: decoupled_mode
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    entity_category: config
+    icon: "mdi:connection"
+
+light:
+  - platform: status_led
+    id: default_status_led
+    name: "Status LED"
+    pin:
+        number: GPIO13
+        inverted: true
+    entity_category: config 
+
+interval:
+  - interval: 30min
+    then:
+      - homeassistant.event:
+          event: esphome.controller_event
+          data:
+            command: "checkin"
+      - logger.log: "Checkin event was fired"

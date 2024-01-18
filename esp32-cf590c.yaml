@@ -1,0 +1,30 @@
+substitutions:
+  devicename: "esp32-cf590c"
+  friendly_name: "ESP32"
+
+
+packages:
+    device_base: !include common/device_base.yaml
+
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+esp32_ble_tracker:
+
+bluetooth_proxy:
+  active: true
+
+network:
+  enable_ipv6: true
+
+light:
+  - platform: status_led
+    id: default_status_led
+    name: "Status LED"
+    pin: 
+      number: GPIO22        
+      inverted: true
+    entity_category: config 

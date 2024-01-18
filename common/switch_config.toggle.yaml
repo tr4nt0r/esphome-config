@@ -1,0 +1,143 @@
+binary_sensor:
+  - platform: gpio
+    name: "Switch (external)"
+    pin: 
+      number: ${external_switch_gpio}
+      mode: ${external_switch_mode}
+      inverted: true
+    id: light_switch
+    icon: "mdi:light-switch"
+    entity_category: diagnostic  #don't need this on the dashboard
+    #internal: true
+
+    filters:
+      - delayed_on_off: 10ms
+
+
+    ################################
+    #  events fired for toggle/rocker switches or push button switches
+    ################################
+
+    # toggle event for rocker/toggle switches with no defined on/off states
+    # on_state:
+    #   - homeassistant.event:
+    #       event: esphome.controller_event
+    #       data:
+    #         command: "toggle"
+    #   - logger.log: "Toggle event was fired"
+    #   - if:
+    #       condition:
+    #         - not:
+    #           - api.connected
+    #           # - lambda: 'return strcmp("${decoupled_switch}", "true") == 0;'
+    #           - switch.is_on: decoupled_mode
+    #       then:
+    #         - switch.toggle: relay
+    
+    # short click event for push button switches 
+    # on_click:
+    #   min_length: 50ms
+    #   max_length: 500ms
+    #   then:
+    #     - homeassistant.event:
+    #         event: esphome.controller_event
+    #         data:
+    #           command: "short"
+    #     - logger.log: "Short event was fired"
+
+
+    on_multi_click:
+
+    
+    # toggle event for rocker/toggle switches with no defined on/off states
+      - timing:
+          - OFF for at least 50ms
+        then:
+            - homeassistant.event:
+                event: esphome.controller_event
+                data:
+                  command: "toggle"
+            - logger.log: "Toggle event was fired"
+            - if:
+                condition:
+                  - not:
+                    - api.connected
+                    # - lambda: 'return strcmp("${decoupled_switch}", "true") == 0;'
+                    - switch.is_on: decoupled_mode
+                then:
+                  - switch.toggle: relay
+          
+      - timing:
+          - ON for at least 50ms
+        then:
+            - homeassistant.event:
+                event: esphome.controller_event
+                data:
+                  command: "toggle"
+            - logger.log: "Toggle event was fired"
+            - if:
+                condition:
+                  - not:
+                    - api.connected
+                    # - lambda: 'return strcmp("${decoupled_switch}", "true") == 0;'
+                    - switch.is_on: decoupled_mode
+                then:
+                  - switch.toggle: relay
+          
+      # failsafe relay turn off when HA automation is not working 
+      # rocker on/off/on of off/on/off
+      - timing:
+          - ON for 50ms to 500ms
+          - OFF for 50ms to 500ms
+          - ON for at least 200ms         
+        then:
+          - switch.toggle: relay
+          - homeassistant.event:
+              event: esphome.controller_event
+              data:
+                command: "double"
+          - logger.log: "Double event was fired"
+
+      - timing:
+          - OFF for 50ms to 500ms
+          - ON for 50ms to 500ms
+          - OFF for at least 200ms
+        then:
+          - switch.toggle: relay
+          - homeassistant.event:
+              event: esphome.controller_event
+              data:
+                command: "double"
+          - logger.log: "Double event was fired"
+
+
+    # short click event when toggling rocker switch on/off or off/on 
+      - timing:
+          - OFF for 50ms to 350ms
+          - ON for at least 200ms
+        then:
+            - homeassistant.event:
+                event: esphome.controller_event
+                data:
+                  command: "short"
+            - logger.log: "Short event was fired"
+
+      - timing:
+          - ON for 50ms to 350ms
+          - OFF for at least 200ms
+        then:
+            - homeassistant.event:
+                event: esphome.controller_event
+                data:
+                  command: "short"
+            - logger.log: "Short event was fired"
+
+            
+text_sensor:
+  - platform: template
+    name: "Switch Mode"
+    lambda: |-
+      return {"toggle"};
+    entity_category: diagnostic
+    icon: "mdi:cog"
+
