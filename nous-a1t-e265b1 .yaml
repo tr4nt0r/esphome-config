@@ -13,3 +13,8 @@ substitutions:
 packages:
   device_base: !include common/device_min.yaml
   device_nous_a1t: !include common/device_nous_a1t.yaml
+
+sensor:
+  - id: !extend powersensor
+    power:
+      force_update: true

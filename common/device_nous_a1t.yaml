@@ -3,7 +3,7 @@ esphome:
     comment: "Nous A1T WiFi Smart Socket"
     project:
         name: "Nous.A1T"
-        version: "2023.11.0"
+        version: "2024.01.0"
 
 esp8266:
   board: esp8285
@@ -67,6 +67,7 @@ switch:
 
 sensor:
   - platform: hlw8012
+    id: powersensor
     model: BL0937
     sel_pin:
       number: GPIO12
@@ -94,7 +95,6 @@ sensor:
       name: "Active Power"
       id: active_power
       accuracy_decimals: 1
-      force_update: true
       filters:
         - multiply: ${power_calibration}
     energy:
