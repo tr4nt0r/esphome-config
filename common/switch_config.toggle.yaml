@@ -14,40 +14,8 @@ binary_sensor:
       - delayed_on_off: 10ms
 
 
-    ################################
-    #  events fired for toggle/rocker switches or push button switches
-    ################################
-
-    # toggle event for rocker/toggle switches with no defined on/off states
-    # on_state:
-    #   - homeassistant.event:
-    #       event: esphome.controller_event
-    #       data:
-    #         command: "toggle"
-    #   - logger.log: "Toggle event was fired"
-    #   - if:
-    #       condition:
-    #         - not:
-    #           - api.connected
-    #           # - lambda: 'return strcmp("${decoupled_switch}", "true") == 0;'
-    #           - switch.is_on: decoupled_mode
-    #       then:
-    #         - switch.toggle: relay
-    
-    # short click event for push button switches 
-    # on_click:
-    #   min_length: 50ms
-    #   max_length: 500ms
-    #   then:
-    #     - homeassistant.event:
-    #         event: esphome.controller_event
-    #         data:
-    #           command: "short"
-    #     - logger.log: "Short event was fired"
-
 
     on_multi_click:
-
     
     # toggle event for rocker/toggle switches with no defined on/off states
       - timing:
@@ -62,7 +30,6 @@ binary_sensor:
                 condition:
                   - not:
                     - api.connected
-                    # - lambda: 'return strcmp("${decoupled_switch}", "true") == 0;'
                     - switch.is_on: decoupled_mode
                 then:
                   - switch.toggle: relay
@@ -79,7 +46,6 @@ binary_sensor:
                 condition:
                   - not:
                     - api.connected
-                    # - lambda: 'return strcmp("${decoupled_switch}", "true") == 0;'
                     - switch.is_on: decoupled_mode
                 then:
                   - switch.toggle: relay
@@ -140,4 +106,5 @@ text_sensor:
       return {"toggle"};
     entity_category: diagnostic
     icon: "mdi:cog"
+    update_interval: never
 

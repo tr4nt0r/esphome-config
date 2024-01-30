@@ -1,0 +1,10 @@
+substitutions:
+  devicename: "sonoff-mini-r4-extreme-175358" # change this to the device name and comment out name_add_mac_suffix 
+  friendly_name: "Sonoff Mini R4 Extreme"
+  external_switch_gpio: "GPIO27"
+  external_switch_mode: "INPUT_PULLUP"
+
+packages:
+  device_base: !include common/device_base.yaml
+  device_sonoff_mini_r4_extreme: !include common/device_sonoff_mini_r4_extreme.yaml
+  switch_config: !include common/switch_config.toggle.yaml

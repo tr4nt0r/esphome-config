@@ -3,7 +3,6 @@ substitutions:
   friendly_name: "Sonoff Mini"
   external_switch_gpio: "GPIO04"
   external_switch_mode: "INPUT_PULLUP"
-  decoupled_switch: "true"
 
 packages:
   device_base: !include common/device_min.yaml

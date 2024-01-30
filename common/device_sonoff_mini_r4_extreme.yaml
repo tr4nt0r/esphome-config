@@ -1,0 +1,82 @@
+
+esphome:
+  comment: "Sonoff MINI R4 Extreme Wi-Fi Smart Switch"
+  project:
+    name: "Sonoff.MINIR4"
+    version: "2024.01.0"
+    
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    id: reset_button
+    internal: true
+    filters:
+      - invert:
+      - delayed_off: 10ms
+    on_press: 
+      switch.toggle: relay
+    on_double_click:
+      button.press: restart_device
+    on_click:
+      min_length: 10s
+      max_length: 20s
+      then:
+        - button.press: reset
+
+switch:
+  - platform: gpio
+    name: "Switch"
+    pin: GPIO26
+    id: relay
+    device_class: switch
+    restore_mode: restore_default_on
+
+  - platform: template
+    name: "Decoupled Mode"
+    id: decoupled_mode
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    entity_category: config
+    icon: "mdi:connection"
+
+light:
+  - platform: status_led
+    name: "Status LED"
+    id: default_status_led
+    pin:
+      number: GPIO19
+      inverted: true
+    entity_category: config
+    
+interval:
+  - interval: 30min
+    then:
+      - homeassistant.event:
+          event: esphome.controller_event
+          data:
+            command: "checkin"
+      - logger.log: "Checkin event was fired"
+
+esp32_ble_tracker:
+
+bluetooth_proxy:
+  active: true
+
+network:
+  enable_ipv6: true
+
+sensor:
+  - platform: internal_temperature
+    name: "Device Temperature"
+    id: device_temperature
+
